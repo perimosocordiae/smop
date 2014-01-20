@@ -32,7 +32,7 @@ reserved = {
     "while": "WHILE",
     "return": "RETURN",
 }
-tokens += list(reserved.values())
+tokens.extend(reserved.values())
 literals = "="
 
 
@@ -256,8 +256,7 @@ def new():
 
 if __name__ == "__main__":
     lexer = new()
-    while 1:
-        line = sys.stdin.readline()
+    for line in sys.stdin:
         if not line:
             break
         lexer.input(line)

@@ -5,18 +5,13 @@ import sys
 import re
 from ply import yacc
 
-from lexer import tokens
 import lexer
+tokens = lexer.tokens
 
 import node
-import resolve
 
 
-class error(Exception):
-    pass
-
-
-class syntax_error(error):
+class syntax_error(Exception):
     pass
 
 precedence = (
