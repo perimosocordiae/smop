@@ -21,10 +21,6 @@ optable = {
 }
 
 
-def backend(t, *args):
-    return t._backend(*args)
-
-
 @extend(node.matrix)
 @exceptions
 def _backend(self, level=0):
