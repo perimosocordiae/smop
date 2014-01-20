@@ -339,10 +339,19 @@ def _backend(self, level=0):
                              self.args._backend())
     else:
         s = "def %s(*varargin):" % self.ident._backend()
+    if self.docstring:
+        s += '\n    """' + self.docstring[0].lstrip()
+        for d in self.docstring[1:]:
+            if d.strip():
+                s += '\n    ' + d
+            else:
+                s += '\n'
+        s += '\n    """'
+    if self.use_nargin:
         s += "\n    nargin = len(varargin)"
         for i in range(len(self.args)):
             s += "\n    if nargin > %d:" % i
-            s += "\n        %s = varargin[%d]" % (self.args[i], i)
+            s += "\n        %s = varargin[%d]" % (self.args[i]._backend(), i)
     return s
 
 """
@@ -427,6 +436,19 @@ def _backend(self, level=0):
                                          self.args[1]._backend())
 
 
+@extend(node.struct)
+@exceptions
+def _backend(self, level=0):
+    return "type('struct', (), {})()"
+
+
+@extend(node.isfield)
+@exceptions
+def _backend(self, level=0):
+    return "hasattr(%s, %s)" % (self.args[0]._backend(),
+                                self.args[1]._backend())
+
+
 @extend(node.isequal)
 @exceptions
 def _backend(self, level=0):
@@ -502,11 +524,30 @@ def _backend(self, level=0):
 @extend(node.min)
 @extend(node.max)
 @extend(node.sum)
-@extend(node.zeros)
 @exceptions
 def _backend(self, level=0):
     cls_name = self.__class__.__name__
     return ("np." + cls_name + "(%s)") % self.args._backend()
+
+
+@extend(node.zeros)
+@extend(node.ones)
+@extend(node.inf)
+@exceptions
+def _backend(self, level=0):
+    cls_name = self.__class__.__name__
+    # The last arg might be a dtype string
+    if type(self.args[-1]) is node.string:
+        dtype_name = self.args.pop()._backend()
+    else:
+        dtype_name = "'float64'"  # default case
+    # If only one shape argument is given, make a square matrix.
+    if len(self.args) == 1:
+        self.args.append(self.args[0])
+    # There's not a direct equivalent for inf, but we can fake it.
+    if cls_name == 'inf':
+        return "(np.zeros(shape=(%s), dtype=%s) + np.inf)" % (self.args._backend(), dtype_name)
+    return "np.%s(shape=(%s), dtype=%s)" % (cls_name, self.args._backend(), dtype_name)
 
 
 @extend(node.exist)
@@ -547,3 +588,9 @@ def _backend(self, level=0):
 @exceptions
 def _backend(self, level=0):
     return "%s" % self
+
+
+@extend(node.Inf)
+@exceptions
+def _backend(self, level=0):
+    return "np.inf"
