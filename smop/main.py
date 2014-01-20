@@ -66,7 +66,7 @@ def translate(input_files, opts):
         # move each comment alone on a line
         # to avoid errors by trailing comment
         # and minimally change parsing rules
-        buf = re.sub("%", "\n %", buf)
+        buf = re.sub("%+", "\n %", buf)
         # ensure the last char is a newline
         if buf[-1] != '\n':
             buf += '\n'

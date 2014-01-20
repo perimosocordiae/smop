@@ -190,7 +190,7 @@ class let(stmt, recordtype("let",
         return "%s=%s" % (str(self.ret), str(self.args))
 
 
-class func_decl(stmt, recordtype("func_decl", "ident ret args decl_list use_nargin", default=None)):
+class func_decl(stmt, recordtype("func_decl", "ident ret args decl_list use_nargin docstring", default=None)):
     pass
 
 
@@ -383,9 +383,10 @@ builtins_list = [
     "floor",
     "fopen",
     "getfield",
-    "inf", "inf0",
+    "inf", "inf0", "Inf",
     "isempty",
     "isequal",
+    "isfield",
     "isinf",
     "isnan",
     "length",
@@ -408,6 +409,7 @@ builtins_list = [
     "sort",
     "strcmp",
     "strcmpi",
+    "struct",
     "sub",  # synthetic opcode
     "sum",
     "transpose",
