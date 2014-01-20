@@ -21,9 +21,9 @@ def main():
     op.add_option('-X', '--exclude', type=str, default='', metavar='FILES',
                   help='Ignore files listed in comma-separated list FILES')
     op.add_option('--strict', action='store_true',
-                  help='Stop on the first error')
-    op.add_option('--verbose', action='store_true')
-    op.add_option('--version', action='store_true')
+                  help='Stop on the first error [False]')
+    op.add_option('--verbose', action='store_true', help='Verbose output [False]')
+    op.add_option('--version', action='store_true', help='Show version and exit')
     op.add_option('--no-comments', action='store_false', dest='with_comments',
                   default=True, help='Strip comments')
     op.add_option('--resolve', action='store_true', dest='do_resolve',
@@ -68,9 +68,11 @@ def main():
         # to avoid errors by trailing comment
         # and minimally change parsing rules
         buf = re.sub("%", "\n %", buf)
+        # ensure the last char is a newline
+        if buf[-1] != '\n':
+            buf += '\n'
 
-        func_list = parse.parse(buf if buf[-1] == '\n' else buf + '\n',
-                                opts.with_comments)
+        func_list = parse.parse(buf, opts.with_comments)
 
         try:
             symtab = {}
