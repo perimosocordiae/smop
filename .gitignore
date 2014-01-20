@@ -3,4 +3,5 @@
 *.swp
 a.py
 *.egg-info
-
+*.out
+parsetab.py
