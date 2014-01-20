@@ -38,6 +38,10 @@ def main():
                   default=False, help='Apply the "typeof" pass [False]')
     op.add_option('--no-typeof', action='store_false', dest='do_typeof',
                   default=False)
+    op.add_option('--rename', action='store_true', dest='do_rename',
+                  default=False, help='Apply the "rename" pass [False]')
+    op.add_option('--no-rename', action='store_false', dest='do_rename',
+                  default=False)
     opts, args = op.parse_args()
 
     if opts.version:
@@ -89,6 +93,8 @@ def main():
                     continue
                 if opts.do_resolve:
                     resolve.resolve(func_obj)
+                if opts.do_rename:
+                    resolve.rename(func_obj)
 
             if opts.do_typeof:
                 for func_obj in func_list:

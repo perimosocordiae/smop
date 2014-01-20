@@ -21,7 +21,6 @@ It is used in if_stmt, for_stmt, and while_stmt.
 import copy
 import node
 from node import extend, exceptions
-import options
 
 
 @exceptions
@@ -40,8 +39,6 @@ def rename(t):
 @exceptions
 def resolve(t, symtab={}):
     do_resolve(t, symtab)
-    if options.do_rename:
-        rename(t)
 
 
 def do_resolve(t, symtab):
