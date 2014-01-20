@@ -57,7 +57,7 @@ def main():
 
     for filename in args:
         if not filename.endswith(".m"):
-            print "\tIngored file: '%s'" % filename
+            print "\tIgnored file: '%s'" % filename
             continue
         if os.path.basename(filename) in exclude_list:
             print "\tExcluded file: '%s'" % filename
