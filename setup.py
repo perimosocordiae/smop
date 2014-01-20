@@ -10,5 +10,5 @@ setup(
     version='0.23',
     entry_points={'console_scripts': ['smop = smop.main:main', ], },
     packages=['smop'],
-    install_requires=['numpy', 'scipy'],
+    install_requires=['numpy', 'scipy', 'ply'],
 )
