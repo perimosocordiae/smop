@@ -2,7 +2,6 @@
 # Copyright 2011-2013 Victor Leikehman
 
 import sys
-import glob
 import os
 import re
 from optparse import OptionParser
@@ -56,56 +55,55 @@ def main():
     print >> fp, "from scipy.io import loadmat,savemat"
     print >> fp, "import os\n"
 
-    for pattern in args:
-        for filename in glob.glob(os.path.expanduser(pattern)):
-            if not filename.endswith(".m"):
-                print "\tIngored file: '%s'" % filename
-                continue
-            if os.path.basename(filename) in exclude_list:
-                print "\tExcluded file: '%s'" % filename
-                continue
-            print filename
-            buf = open(filename).read()
+    for filename in args:
+        if not filename.endswith(".m"):
+            print "\tIngored file: '%s'" % filename
+            continue
+        if os.path.basename(filename) in exclude_list:
+            print "\tExcluded file: '%s'" % filename
+            continue
+        print filename
+        buf = open(filename).read()
 
-            # move each comment alone on a line
-            # to avoid errors by trailing comment
-            # and minimally change parsing rules
-            buf = re.sub("%", "\n %", buf)
+        # move each comment alone on a line
+        # to avoid errors by trailing comment
+        # and minimally change parsing rules
+        buf = re.sub("%", "\n %", buf)
 
-            func_list = parse.parse(buf if buf[-1] == '\n' else buf + '\n',
-                                    opts.with_comments)
+        func_list = parse.parse(buf if buf[-1] == '\n' else buf + '\n',
+                                opts.with_comments)
 
-            try:
-                symtab = {}
+        try:
+            symtab = {}
+            for func_obj in func_list:
+                try:
+                    func_name = func_obj.head.ident.name
+                    symtab[func_name] = func_obj
+                    print "\t", func_name
+                except AttributeError:
+                    if opts.verbose:
+                        print "\tJunk ignored"
+                    if opts.strict:
+                        return
+                    continue
+                if opts.do_resolve:
+                    resolve.resolve(func_obj)
+
+            if opts.do_typeof:
                 for func_obj in func_list:
-                    try:
-                        func_name = func_obj.head.ident.name
-                        symtab[func_name] = func_obj
-                        print "\t", func_name
-                    except AttributeError:
-                        if opts.verbose:
-                            print "\tJunk ignored"
-                        if opts.strict:
-                            return
-                        continue
-                    if opts.do_resolve:
-                        resolve.resolve(func_obj)
+                    func_obj.apply([], symtab)
 
-                if opts.do_typeof:
-                    for func_obj in func_list:
-                        func_obj.apply([], symtab)
-
-                if opts.do_rewrite:
-                    for func_obj in func_list:
-                        rewrite.rewrite(func_obj)
-
+            if opts.do_rewrite:
                 for func_obj in func_list:
-                    s = backend.backend(func_obj)
-                    print >> fp, s
-            except Exception as ex:
-                print repr(ex)
-                if opts.strict:
-                    return
+                    rewrite.rewrite(func_obj)
+
+            for func_obj in func_list:
+                s = backend.backend(func_obj)
+                print >> fp, s
+        except Exception as ex:
+            print repr(ex)
+            if opts.strict:
+                return
 
 
 if __name__ == "__main__":
