@@ -3,74 +3,74 @@
 
 import sys
 import re
-from zlib import adler32
-import lex
+from ply import lex
 from lex import TOKEN
 
 
 tokens = [
-    "AND", "ANDAND", "BACKSLASH", "COLON", "COMMA", 
+    "AND", "ANDAND", "BACKSLASH", "COLON", "COMMA",
     "DIV", "DOT", "DOTDIV", "DOTEXP", "DOTMUL", "END_EXPR",
     "END_STMT", "EQ", "EXP", "FIELD", "GE", "GT", "HANDLE", "IDENT",
     "LBRACE", "LBRACKET", "LE", "LPAREN", "LT", "MINUS", "MUL", "NE",
-    "NEG", "NUMBER", "OR" , "OROR", "PLUS", "RBRACE", "RBRACKET",
+    "NEG", "NUMBER", "OR", "OROR", "PLUS", "RBRACE", "RBRACKET",
     "RPAREN", "SEMI", "STRING", "TRANSPOSE", "COMMENT"
 ]
 
 reserved = {
-    "break"    : "BREAK",
-    "case"     : "CASE",
-    "catch"    : "CATCH",
-    "continue" : "CONTINUE",
-    "else"     : "ELSE",
-    "elseif"   : "ELSEIF",
-    "for"      : "FOR",
-    "function" : "FUNCTION",
-    "global"   : "GLOBAL",
-    "if"       : "IF",
+    "break": "BREAK",
+    "case": "CASE",
+    "catch": "CATCH",
+    "continue": "CONTINUE",
+    "else": "ELSE",
+    "elseif": "ELSEIF",
+    "for": "FOR",
+    "function": "FUNCTION",
+    "global": "GLOBAL",
+    "if": "IF",
     "otherwise": "OTHERWISE",
-    "switch"   : "SWITCH",
-    "try"      : "TRY",
-    "while"    : "WHILE",
-    "return"   : "RETURN",
-    }
+    "switch": "SWITCH",
+    "try": "TRY",
+    "while": "WHILE",
+    "return": "RETURN",
+}
 tokens += list(reserved.values())
 literals = "="
 
+
 def new():
-    t_AND    = r"\&"
+    t_AND = r"\&"
     t_ANDAND = r"\&\&"
     t_BACKSLASH = r"\\"
-    t_COLON  = r":"
-    t_DIV    = r"\/"
-    t_DOT    = r"\."
+    t_COLON = r":"
+    t_DIV = r"\/"
+    t_DOT = r"\."
     t_DOTDIV = r"\./"
     t_DOTEXP = r"\.\^"
     t_DOTMUL = r"\.\*"
-    t_EQ     = r"=="
-    t_EXP    = r"\^"
-    t_GE     = r">="
-    t_GT     = r"\>"
+    t_EQ = r"=="
+    t_EXP = r"\^"
+    t_GE = r">="
+    t_GT = r"\>"
     t_HANDLE = r"\@"
-    t_LE     = r"<="
-    t_LT     = r"\<"
-    t_MINUS  = r"\-"
-    t_MUL    = r"\*"
-    t_NE     = r"~="
-    t_NEG    = r"\~"
-    t_OR     = r"\|"
-    t_OROR   = r"\|\|"
-    t_PLUS   = r"\+"
-    
-    states = (("matrix","inclusive"),
-              ("afterkeyword","exclusive"))
+    t_LE = r"<="
+    t_LT = r"\<"
+    t_MINUS = r"\-"
+    t_MUL = r"\*"
+    t_NE = r"~="
+    t_NEG = r"\~"
+    t_OR = r"\|"
+    t_OROR = r"\|\|"
+    t_PLUS = r"\+"
+
+    states = (("matrix", "inclusive"),
+              ("afterkeyword", "exclusive"))
 
     #ws1 = r"(\s|\.\.\..*\n|%.*)+"
     ws0 = r"(\s|\.\.\..*\n)*"
-    
+
     def t_afterkeyword_STRING(t):
         r"'([^']|(''))*'"
-        t.value = t.value[1:-1].replace("''","'")
+        t.value = t.value[1:-1].replace("''", "'")
         t.lexer.begin("INITIAL")
         return t
 
@@ -94,7 +94,7 @@ def new():
 
     def t_STRING(t):
         r"'([^']|(''))*'"
-        t.value = t.value[1:-1].replace("''","'")
+        t.value = t.value[1:-1].replace("''", "'")
         return t
 
     def t_IDENT(t):
@@ -111,11 +111,10 @@ def new():
             else:
                 t.type = "END_STMT"
         else:
-            t.type = reserved.get(t.value,"IDENT")
-            if t.type != "IDENT" and t.lexer.lexdata[t.lexer.lexpos]=="'":
+            t.type = reserved.get(t.value, "IDENT")
+            if t.type != "IDENT" and t.lexer.lexdata[t.lexer.lexpos] == "'":
                 t.lexer.begin("afterkeyword")
         return t
-
 
     def t_LPAREN(t):
         r"\("
@@ -127,57 +126,60 @@ def new():
         t.lexer.parens -= 1
         return t
 
-    @TOKEN(ws0+r"\]")
+    @TOKEN(ws0 + r"\]")
     def t_RBRACKET(t):
         # compare w t_LBRACKET
-        #r"(\s|\.\.\..*\n)*\]" # eating all whitespace, including vertical and continuation
+        # r"(\s|\.\.\..*\n)*\]" # eating all whitespace, including vertical and
+        # continuation
         t.lexer.lineno += t.value.count("\n")
         t.lexer.brackets -= 1
-        if t.lexer.brackets+t.lexer.braces == 0:
+        if t.lexer.brackets + t.lexer.braces == 0:
             t.lexer.begin("INITIAL")
         return t
 
-    @TOKEN(r"\["+ws0)
+    @TOKEN(r"\[" + ws0)
     def t_LBRACKET(t):
         # compare w t_SEMI
-        #r"\[(\s|\.\.\..*\n|%.*)*" # eating all whitespace, including vertical and continuation
+        # r"\[(\s|\.\.\..*\n|%.*)*" # eating all whitespace, including vertical
+        # and continuation
         t.lexer.lineno += t.value.count("\n")
         t.lexer.brackets += 1
-        if t.lexer.brackets+t.lexer.braces == 1:
+        if t.lexer.brackets + t.lexer.braces == 1:
             t.lexer.begin("matrix")
         return t
 
     # maybe we need a dedicated CELLARRAY state ???
-    @TOKEN(ws0+r"\}")
+    @TOKEN(ws0 + r"\}")
     def t_RBRACE(t):
         #r"[ \t]*\}"
         t.lexer.braces -= 1
-        if t.lexer.braces+t.lexer.brackets == 0:
+        if t.lexer.braces + t.lexer.brackets == 0:
             t.lexer.begin("INITIAL")
         return t
 
-    @TOKEN(r"\{"+ws0)
+    @TOKEN(r"\{" + ws0)
     def t_LBRACE(t):
         #r"\{[ \t]*"
         t.lexer.braces += 1
-        if t.lexer.brackets+t.lexer.braces == 1:
+        if t.lexer.brackets + t.lexer.braces == 1:
             t.lexer.begin("matrix")
         return t
 
-    @TOKEN(r","+ws0)
+    @TOKEN(r"," + ws0)
     def t_COMMA(t):
-        #r",[ \t]*" # eating spaces is important inside brackets
+        # r",[ \t]*" # eating spaces is important inside brackets
         t.lexer.lineno += t.value.count("\n")
         if (t.lexer.brackets == 0 and
             t.lexer.parens == 0 and
-            t.lexer.braces == 0):
+                t.lexer.braces == 0):
             t.type = "SEMI"
             return t
         return t
 
-    @TOKEN(r"\;"+ws0)
+    @TOKEN(r"\;" + ws0)
     def t_SEMI(t):
-        #r"\;(\s|\.\.\..*\n|%.*)*" # eating all whitespace, including vertical and continuation
+        # r"\;(\s|\.\.\..*\n|%.*)*" # eating all whitespace, including vertical
+        # and continuation
         t.lexer.lineno += t.value.count("\n")
 #        if t.lexer.brackets or t.lexer.braces > 0:
 #            t.type = "CONCAT"
@@ -186,7 +188,7 @@ def new():
     def t_NUMBER(t):
         r"(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?[ij]?"
         if t.value[-1] == 'i':
-            t.value = t.value[:-1]+'j'
+            t.value = t.value[:-1] + 'j'
         t.value = eval(t.value)
         return t
 
@@ -200,20 +202,18 @@ def new():
     def t_COMMENT(t):
         r"%.*"
         t.lexer.lineno += 1
-        t.value = '#' +t.value[1:]
+        t.value = '#' + t.value[1:]
         return t
 
-
-#    @TOKEN(ws+r"(?=[-+]\S)")    
+#    @TOKEN(ws+r"(?=[-+]\S)")
 #    def t_matrix_WHITESPACE(t):
-#        #r"\s+(?=[-+]\S)"
-#        # Whitespace, followed by + or - followed by anything but whitespace
+# r"\s+(?=[-+]\S)"
+# Whitespace, followed by + or - followed by anything but whitespace
 #        t.lexer.lineno += t.value.count("\n")
 #        t.type = "COMMA"
 #        return t
-
     def t_matrix_FOO(t):
-        r"(?<=[])}'.]|\w)(\s|\.\.\..*\n|%.*)+(?=[-+]?([[({']|\w|\.\d))"
+        r"(?<=[])}'.]|\w)(\s|\.\.\..*\n|%.*)+(?=[-+]?([\[({']|\w|\.\d))"
         # <-----term----><---whitespace-----><----term------->
 
         # This catches a whitespace separating two terms, without an
@@ -231,7 +231,7 @@ def new():
         # TODO: what about curly brackets ???
         # TODO: what about dot followed by a letter, as in field
         #   [foo  .bar]
-        
+
         t.lexer.lineno += t.value.count("\n")
         t.type = "COMMA"
         return t

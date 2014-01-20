@@ -1,44 +1,40 @@
 # SMOP compiler -- Simple Matlab/Octave to Python compiler
 # Copyright 2011-2013 Victor Leikehman
 
-import copy
-import pprint
-import os
-import operator
 import sys
-
 import re
-import yacc
+from ply import yacc
 
 from lexer import tokens
 import lexer
 
-#import builtins
 import node
-#from node import *
 import resolve
+
 
 class error(Exception):
     pass
+
 
 class syntax_error(error):
     pass
 
 precedence = (
-    ("nonassoc","HANDLE"),
+    ("nonassoc", "HANDLE"),
     ("left", "COMMA"),
     ("left", "COLON"),
     ("left", "ANDAND", "OROR"),
     ("left", "EQ", "NE", "GE", "LE", "GT", "LT"),
     ("left", "OR", "AND"),
     ("left", "PLUS", "MINUS"),
-    ("left", "MUL","DIV","DOTMUL","DOTDIV","BACKSLASH"),
-    ("right","UMINUS","NEG"),
-    ("right","TRANSPOSE"),
-    ("right","EXP", "DOTEXP"),
-    ("nonassoc","LPAREN","RPAREN","RBRACE","LBRACE"),
-    ("left", "FIELD","DOT"),
-    )
+    ("left", "MUL", "DIV", "DOTMUL", "DOTDIV", "BACKSLASH"),
+    ("right", "UMINUS", "NEG"),
+    ("right", "TRANSPOSE"),
+    ("right", "EXP", "DOTEXP"),
+    ("nonassoc", "LPAREN", "RPAREN", "RBRACE", "LBRACE"),
+    ("left", "FIELD", "DOT"),
+)
+
 
 def p_top(p):
     """
@@ -60,8 +56,9 @@ def p_top(p):
             p[3].append(node.return_stmt(ret_expr))
 
         p[0] = p[1]
-        p[0].append(node.function(head=p[2],body=p[3]))
-    assert isinstance(p[0],node.stmt_list)
+        p[0].append(node.function(head=p[2], body=p[3]))
+    assert isinstance(p[0], node.stmt_list)
+
 
 def p_semi_opt(p):
     """
@@ -70,6 +67,7 @@ def p_semi_opt(p):
              | semi_opt COMMA
     """
     pass
+
 
 def p_stmt(p):
     """
@@ -93,7 +91,8 @@ def p_stmt(p):
 
 # FIXME: order statements by ABC
 
-### command
+# command
+
 
 def p_arg1(p):
     """
@@ -107,6 +106,7 @@ def p_arg1(p):
                        lineno=p.lineno(1),
                        lexpos=p.lexpos(1))
 
+
 def p_args(p):
     """
     args : arg1
@@ -118,21 +118,24 @@ def p_args(p):
         p[0] = p[1]
         p[0].append(p[2])
 
+
 def p_command(p):
     """
     command : ident args SEMI
     """
 #    if p[1].name == "load":
-#        # "load filename x" ==> "x=load(filename)"
-#        # "load filename x y z" ==> "(x,y,z)=load(filename)"
+# "load filename x" ==> "x=load(filename)"
+# "load filename x y z" ==> "(x,y,z)=load(filename)"
 #        ret=node.expr_list([node.ident(t.value) for t in p[2][1:]])
 #        p[0] = node.funcall(func_expr=p[1],
 #                            args=node.expr_list(p[2]),
 #                            ret=ret)
 #    else:
-    p[0] = node.funcall(p[1],p[2])
+    p[0] = node.funcall(p[1], p[2])
 
-####################
+#
+
+
 def p_global_list(p):
     """global_list : ident
                    | global_list ident
@@ -143,17 +146,21 @@ def p_global_list(p):
         p[0] = p[1]
         p[0].append(p[2])
 
+
 def p_global_stmt(p):
     "global_stmt : GLOBAL global_list SEMI"
     p[0] = node.global_stmt(p[2])
+
 
 def p_return_stmt(p):
     "return_stmt : RETURN SEMI"
     p[0] = node.return_stmt(ret=ret_expr)
 
+
 def p_continue_stmt(p):
     "continue_stmt : CONTINUE SEMI"
     p[0] = node.continue_stmt(None)
+
 
 def p_break_stmt(p):
     "break_stmt : BREAK SEMI"
@@ -161,47 +168,52 @@ def p_break_stmt(p):
 
 # switch-case-otherwise
 
+
 def p_switch_stmt(p):
     """
     switch_stmt : SWITCH expr semi_opt case_list END_STMT
     """
-    def backpatch(expr,stmt):
-        if isinstance(stmt,node.if_stmt):
+    def backpatch(expr, stmt):
+        if isinstance(stmt, node.if_stmt):
             stmt.cond_expr.args[1] = expr
-            backpatch(expr,stmt.else_stmt)
-    backpatch(p[2],p[4])
+            backpatch(expr, stmt.else_stmt)
+    backpatch(p[2], p[4])
     p[0] = p[4]
+
 
 def p_case_list(p):
     """
-    case_list : 
+    case_list :
               | CASE expr sep stmt_list_opt case_list
               | OTHERWISE stmt_list
     """
     if len(p) == 1:
         p[0] = node.stmt_list()
     elif len(p) == 3:
-        assert isinstance(p[2],node.stmt_list)
+        assert isinstance(p[2], node.stmt_list)
         p[0] = p[2]
     elif len(p) == 6:
         p[0] = node.if_stmt(cond_expr=node.expr(op="==",
                                                 args=node.expr_list([p[2]])),
                             then_stmt=p[4],
                             else_stmt=p[5])
-        p[0].cond_expr.args.append(None) # None will be replaced using backpatch()
+        # None will be replaced using backpatch()
+        p[0].cond_expr.args.append(None)
     else:
         assert 0
 
 # try-catch
 
+
 def p_try_catch(p):
     """
     try_catch : TRY stmt_list CATCH stmt_list END_STMT
     """
-    assert isinstance(p[2],node.stmt_list)
-    assert isinstance(p[4],node.stmt_list)
+    assert isinstance(p[2], node.stmt_list)
+    assert isinstance(p[4], node.stmt_list)
     p[0] = node.try_catch(try_stmt=p[2],
                           catch_stmt=p[4])
+
 
 def p_null_stmt(p):
     """
@@ -210,28 +222,30 @@ def p_null_stmt(p):
     """
     p[0] = None
 
+
 def p_func_decl(p):
-    """func_decl : FUNCTION ident args_opt SEMI 
-                 | FUNCTION ret '=' ident args_opt SEMI 
+    """func_decl : FUNCTION ident args_opt SEMI
+                 | FUNCTION ret '=' ident args_opt SEMI
     """
-    global ret_expr,use_nargin
+    global ret_expr, use_nargin
     use_nargin = 0
 
     if len(p) == 5:
-        assert isinstance(p[3],node.expr_list)
+        assert isinstance(p[3], node.expr_list)
         p[0] = node.func_decl(ident=p[2],
                               ret=node.expr_list(),
                               args=p[3])
         ret_expr = node.expr_list()
     elif len(p) == 7:
-        assert isinstance(p[2],node.expr_list)
-        assert isinstance(p[5],node.expr_list)
+        assert isinstance(p[2], node.expr_list)
+        assert isinstance(p[5], node.expr_list)
         p[0] = node.func_decl(ident=p[4],
                               ret=p[2],
                               args=p[5])
         ret_expr = p[2]
     else:
         assert 0
+
 
 def p_args_opt(p):
     """
@@ -244,10 +258,11 @@ def p_args_opt(p):
     elif len(p) == 3:
         p[0] = node.expr_list()
     elif len(p) == 4:
-        assert isinstance(p[2],node.expr_list)
+        assert isinstance(p[2], node.expr_list)
         p[0] = p[2]
     else:
         assert 0
+
 
 def p_arg_list(p):
     """
@@ -263,7 +278,8 @@ def p_arg_list(p):
         p[0].append(p[3])
     else:
         assert 0
-    assert isinstance(p[0],node.expr_list)
+    assert isinstance(p[0], node.expr_list)
+
 
 def p_ret(p):
     """
@@ -276,22 +292,24 @@ def p_ret(p):
     elif len(p) == 3:
         p[0] = node.expr_list([])
     elif len(p) == 4:
-        assert isinstance(p[2],node.expr_list)
+        assert isinstance(p[2], node.expr_list)
         p[0] = p[2]
     else:
         assert 0
 
 # end func_decl
 
+
 def p_stmt_list_opt(p):
     """
-    stmt_list_opt : 
+    stmt_list_opt :
                   | stmt_list
     """
     if len(p) == 1:
         p[0] = node.stmt_list()
     else:
         p[0] = p[1]
+
 
 def p_stmt_list(p):
     """
@@ -307,16 +325,18 @@ def p_stmt_list(p):
     else:
         assert 0
 
+
 def p_concat_list(p):
     """
     concat_list : expr_list SEMI expr_list
                 | concat_list SEMI expr_list
     """
     if p[1].__class__ == node.expr_list:
-        p[0] = node.concat_list([p[1],p[3]])
+        p[0] = node.concat_list([p[1], p[3]])
     else:
         p[0] = p[1]
         p[0].append(p[3])
+
 
 def p_expr_list(p):
     """
@@ -324,6 +344,7 @@ def p_expr_list(p):
               | exprs COMMA
     """
     p[0] = p[1]
+
 
 def p_exprs(p):
     """
@@ -337,22 +358,25 @@ def p_exprs(p):
         p[0].append(p[3])
     else:
         assert(0)
-    assert isinstance(p[0],node.expr_list)
+    assert isinstance(p[0], node.expr_list)
+
 
 def p_expr_stmt(p):
     """
     expr_stmt : expr_list SEMI
     """
-    assert isinstance(p[1],node.expr_list)
+    assert isinstance(p[1], node.expr_list)
     p[0] = node.expr_stmt(expr=p[1])
+
 
 def p_while_stmt(p):
     """
     while_stmt : WHILE expr SEMI stmt_list END_STMT
     """
-    assert isinstance(p[4],node.stmt_list)
+    assert isinstance(p[4], node.stmt_list)
     p[0] = node.while_stmt(cond_expr=p[2],
                            stmt_list=p[4])
+
 
 def p_separator(p):
     """
@@ -360,6 +384,7 @@ def p_separator(p):
         | SEMI
     """
     p[0] = p[1]
+
 
 def p_if_stmt(p):
     """
@@ -370,11 +395,12 @@ def p_if_stmt(p):
                         then_stmt=p[4],
                         else_stmt=p[5])
 
+
 def p_elseif_stmt(p):
     """
     elseif_stmt :
                 | ELSE stmt_list_opt
-                | ELSEIF expr sep stmt_list_opt elseif_stmt 
+                | ELSEIF expr sep stmt_list_opt elseif_stmt
     """
     if len(p) == 1:
         p[0] = node.stmt_list()
@@ -387,27 +413,29 @@ def p_elseif_stmt(p):
     else:
         assert 0
 
+
 def p_let(p):
     """
     let : expr '=' expr SEMI
     """
-    assert (isinstance(p[1],(node.ident,node.funcall,node.cellarrayref)) or
-            (isinstance(p[1],node.expr) and p[1].op in (("{}","DOT","."))))
-    if isinstance(p[1],node.getfield):
+    assert (isinstance(p[1], (node.ident, node.funcall, node.cellarrayref)) or
+            (isinstance(p[1], node.expr) and p[1].op in (("{}", "DOT", "."))))
+    if isinstance(p[1], node.getfield):
         p[0] = node.setfield(p[1].args[0],
                              p[1].args[1],
                              p[3])
     else:
-         #assert len(p[1].args) > 0
-         ret = p[1].args if isinstance(p[1],node.matrix) else p[1]
-         p[0] = node.let(ret=ret,
-                         args=p[3],
-                         lineno=p.lineno(2),
-                         lexpos=p.lexpos(2))
-         if isinstance(p[1],node.matrix):
-             p[0].nargout = len(p[1].args)
-         else:
-             p[0].nargout = 0
+        #assert len(p[1].args) > 0
+        ret = p[1].args if isinstance(p[1], node.matrix) else p[1]
+        p[0] = node.let(ret=ret,
+                        args=p[3],
+                        lineno=p.lineno(2),
+                        lexpos=p.lexpos(2))
+        if isinstance(p[1], node.matrix):
+            p[0].nargout = len(p[1].args)
+        else:
+            p[0].nargout = 0
+
 
 def p_for_stmt(p):
     """
@@ -419,8 +447,8 @@ def p_for_stmt(p):
                              expr=p[4],
                              stmt_list=p[6])
 
-            # # lexpos used to be unique per ident
-            # # this rare case breaks that assumption
+            # lexpos used to be unique per ident
+            # this rare case breaks that assumption
             # new_index = node.ident.new("I",
             #                            lineno=p.lineno(2),
             #                            lexpos=p.lexpos(2))
@@ -435,8 +463,8 @@ def p_for_stmt(p):
             #                       stmt_list=p[6])
             # stmt3.stmt_list.insert(0,stmt2)
             # p[0] = node.stmt_list([stmt1,stmt3])
-            # #p[0] = stmt3
-                                  
+            # p[0] = stmt3
+
     # if len(p) == 8:
     #     assert isinstance(p[6],stmt_list)
     #     p[0] = for_stmt(ident=p[2],
@@ -446,7 +474,8 @@ def p_for_stmt(p):
     #     p[0] = for_stmt(ident=p[3],
     #                     expr=p[5],
     #                     stmt_list=p[8])
-################  expr  ################
+# expr  ################
+
 
 def p_expr(p):
     """expr : ident
@@ -461,10 +490,11 @@ def p_expr(p):
             | expr1
             | lambda_expr
     """
-    if p[1]=="~":
+    if p[1] == "~":
         p[0] = node.ident(name="__")
     else:
         p[0] = p[1]
+
 
 def p_lambda_args(p):
     """lambda_args : LPAREN RPAREN
@@ -472,10 +502,12 @@ def p_lambda_args(p):
     """
     p[0] = p[2] if len(p) == 4 else node.expr_list()
 
+
 def p_lambda_expr(p):
     """lambda_expr : HANDLE lambda_args expr
     """
     p[0] = node.lambda_expr(args=p[2], ret=p[3])
+
 
 def p_expr_ident(p):
     "ident : IDENT"
@@ -486,29 +518,35 @@ def p_expr_ident(p):
                       lineno=p.lineno(1),
                       lexpos=p.lexpos(1))
 
+
 def p_expr_number(p):
     "number : NUMBER"
-    p[0] = node.number(p[1],lineno=p.lineno(1),lexpos=p.lexpos(1))
+    p[0] = node.number(p[1], lineno=p.lineno(1), lexpos=p.lexpos(1))
+
 
 def p_expr_end(p):
     "end : END_EXPR"
-    p[0] = node.expr(op="end",args=node.expr_list())
-    
+    p[0] = node.expr(op="end", args=node.expr_list())
+
+
 def p_expr_string(p):
     "string : STRING"
-    p[0] = node.string(p[1],lineno=p.lineno(1),lexpos=p.lexpos(1))
+    p[0] = node.string(p[1], lineno=p.lineno(1), lexpos=p.lexpos(1))
+
 
 def p_expr_colon(p):
     "colon : COLON"
-    p[0] = node.expr(op=":",args=node.expr_list())
-    
+    p[0] = node.expr(op=":", args=node.expr_list())
+
+
 def p_expr1(p):
     """expr1 : MINUS expr %prec UMINUS
              | PLUS expr %prec UMINUS
              | NEG expr
              | HANDLE ident
     """
-    p[0] = node.expr(op=p[1],args=node.expr_list([p[2]]))
+    p[0] = node.expr(op=p[1], args=node.expr_list([p[2]]))
+
 
 def p_cellarray(p):
     """
@@ -516,10 +554,11 @@ def p_cellarray(p):
               | LBRACE expr_list RBRACE
     """
     if len(p) == 3:
-        p[0] = node.cellarray(op="{}",args=node.expr_list())
+        p[0] = node.cellarray(op="{}", args=node.expr_list())
     else:
-        p[0] = node.cellarray(op="{}",args=p[2])
-    
+        p[0] = node.cellarray(op="{}", args=p[2])
+
+
 def p_matrix(p):
     """matrix : LBRACKET RBRACKET
               | LBRACKET concat_list RBRACKET
@@ -531,16 +570,18 @@ def p_matrix(p):
         p[0] = node.matrix()
     else:
         p[0] = node.matrix(*p[2])
-    
+
+
 def p_paren_expr(p):
     """
     expr :  LPAREN expr RPAREN
     """
-    p[0] = node.expr(op="parens",args=node.expr_list([p[2]]))
+    p[0] = node.expr(op="parens", args=node.expr_list([p[2]]))
+
 
 def p_field_expr(p):
     """
-    expr : expr FIELD 
+    expr : expr FIELD
     """
     p[0] = node.expr(op=".",
                      args=node.expr_list([p[1],
@@ -548,35 +589,39 @@ def p_field_expr(p):
                                                      lineno=p.lineno(2),
                                                      lexpos=p.lexpos(2))]))
 
+
 def p_transpose_expr(p):
     # p[2] contains the exact combination of plain and conjugate
     # transpose operators, such as "'.''.''''".
     "expr : expr TRANSPOSE"
-    p[0] = node.transpose(p[1],node.string(p[2]))
+    p[0] = node.transpose(p[1], node.string(p[2]))
+
 
 def p_cellarrayref(p):
     """expr : expr LBRACE expr_list RBRACE
             | expr LBRACE RBRACE
     """
     args = node.expr_list() if len(p) == 4 else p[3]
-    assert isinstance(args,node.expr_list)
-    p[0] = node.cellarrayref(func_expr=p[1],args=args)
+    assert isinstance(args, node.expr_list)
+    p[0] = node.cellarrayref(func_expr=p[1], args=args)
+
 
 def p_funcall_expr(p):
-    """expr : expr LPAREN expr_list RPAREN 
+    """expr : expr LPAREN expr_list RPAREN
             | expr LPAREN RPAREN
     """
-    if (len(p)==5 and
-        len(p[3])==1 and 
+    if (len(p) == 5 and
+        len(p[3]) == 1 and
         p[3][0].__class__ is node.expr and
-        p[3][0].op == ":" and not p[3][0].args):
+            p[3][0].op == ":" and not p[3][0].args):
         # foo(:)
-        p[0] = node.arrayref(p[1],p[3])
+        p[0] = node.arrayref(p[1], p[3])
     else:
         args = node.expr_list() if len(p) == 4 else p[3]
-        assert isinstance(args,node.expr_list)
-        p[0] = node.funcall(func_expr=p[1],args=args)
-    
+        assert isinstance(args, node.expr_list)
+        p[0] = node.funcall(func_expr=p[1], args=args)
+
+
 def p_expr2(p):
     """expr2 : expr AND expr
              | expr ANDAND expr
@@ -590,7 +635,7 @@ def p_expr2(p):
              | expr EQ expr
              | expr EXP expr
              | expr GE expr
-             | expr GT expr 
+             | expr GT expr
              | expr LE expr
              | expr LT expr
              | expr MINUS expr
@@ -601,31 +646,35 @@ def p_expr2(p):
              | expr PLUS expr
     """
     if p[2] == ".*":
-        p[0] = node.dot(p[1],p[3])
-    elif p[2] == "." and isinstance(p[3],node.expr) and p[3].op=="parens":
-        p[0] = node.getfield(p[1],p[3].args[0])
-    elif p[2] == ":" and isinstance(p[1],node.expr) and p[1].op==":":
+        p[0] = node.dot(p[1], p[3])
+    elif p[2] == "." and isinstance(p[3], node.expr) and p[3].op == "parens":
+        p[0] = node.getfield(p[1], p[3].args[0])
+    elif p[2] == ":" and isinstance(p[1], node.expr) and p[1].op == ":":
         # Colon expression means different things depending on the
         # context.  As an array subscript, it is a slice; otherwise,
         # it is a call to the "range" function, and the parser can't
         # tell which is which.  So understanding of colon expressions
         # is put off until after "resolve".
         p[0] = p[1]
-        p[0].args.insert(1,p[3])
+        p[0].args.insert(1, p[3])
     else:
-        p[0] = node.expr(op=p[2],args=node.expr_list([p[1],p[3]]))
+        p[0] = node.expr(op=p[2], args=node.expr_list([p[1], p[3]]))
 
 opt_exclude = []
+
+
 def p_error(p):
     if p is None:
         if p not in opt_exclude:
             raise syntax_error(p)
     elif p.lexpos not in opt_exclude:
         raise syntax_error(p)
-    #print "Ignored:",p
+    # print "Ignored:",p
     return p
 
 with_comments = True
+
+
 def p_comment_stmt(p):
     """
     comment_stmt : COMMENT
@@ -638,20 +687,15 @@ def p_comment_stmt(p):
 
 parser = yacc.yacc(start="top")
 
+
 def parse(buf, use_comments=True):
     # strip comments or not in p_comment_stmt
     global with_comments
     with_comments = use_comments
-    
+
     try:
-        p = parser.parse(buf,tracking=1,debug=0,lexer=lexer.new())
+        p = parser.parse(buf, tracking=1, debug=0, lexer=lexer.new())
         return p
     except syntax_error as e:
         print >> sys.stderr, 'Syntax error at %s' % e
         return []
-
-# def fparse(filename):
-#     buf = open(filename).read()
-#     return parse(buf)
-
-# vim: ts=4:sw=4:et:si:ai

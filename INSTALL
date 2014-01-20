@@ -4,7 +4,7 @@ Installation with easy_install
 ==============================
 
 This is the preferred option, because easy_install takes care of
-everything -- finding the dowinload site, and installing the dependences
+everything -- finding the download site, and installing the dependences
 (numpy and networkx).  If you don't have easy_install, this is the
 perfect time to install it.  It is a part of setuptools package located
 at http://pypi.python.org/pypi/setuptools.
@@ -17,7 +17,7 @@ Binary Windows installer
 Download it from github then run it, but you must make sure you have
 installed the dependences -- numpy and networkx.
 
-Installation from sources 
+Installation from sources
 =========================
 
 $ tar zxvf m2py.tar.gz

@@ -34,7 +34,8 @@ def recordtype(typename, field_names, verbose=False, **default_kwds):
     True
     '''
     # Parse and validate the field names.  Validation serves two purposes,
-    # generating informative error messages and preventing template injection attacks.
+    # generating informative error messages and preventing template injection
+    # attacks.
     if isinstance(field_names, basestring):
         # names separated by whitespace and/or commas
         field_names = field_names.replace(',', ' ').split()
@@ -42,7 +43,7 @@ def recordtype(typename, field_names, verbose=False, **default_kwds):
     if not field_names:
         raise ValueError('Records must have at least one field')
     for name in (typename,) + field_names:
-        if not min(c.isalnum() or c=='_' for c in name):
+        if not min(c.isalnum() or c == '_' for c in name):
             raise ValueError('Type names and field names can only contain '
                              'alphanumeric characters and underscores: %r' % name)
         if iskeyword(name):
@@ -63,7 +64,8 @@ def recordtype(typename, field_names, verbose=False, **default_kwds):
     field_defaults = default_kwds.pop('field_defaults', {})
     if 'default' in default_kwds:
         default = default_kwds.pop('default')
-        init_defaults = tuple(field_defaults.get(f,default) for f in field_names)
+        init_defaults = tuple(field_defaults.get(f, default)
+                              for f in field_names)
     elif not field_defaults:
         init_defaults = None
     else:
@@ -77,11 +79,11 @@ def recordtype(typename, field_names, verbose=False, **default_kwds):
     numfields = len(field_names)
     argtxt = ', '.join(field_names)
     reprtxt = ', '.join('%s=%%r' % f for f in field_names)
-    dicttxt = ', '.join('%r: self.%s' % (f,f) for f in field_names)
-    tupletxt = repr(tuple('self.%s' % f for f in field_names)).replace("'",'')
-    inittxt = '; '.join('self.%s=%s' % (f,f) for f in field_names)
+    dicttxt = ', '.join('%r: self.%s' % (f, f) for f in field_names)
+    tupletxt = repr(tuple('self.%s' % f for f in field_names)).replace("'", '')
+    inittxt = '; '.join('self.%s=%s' % (f, f) for f in field_names)
     itertxt = '; '.join('yield self.%s' % f for f in field_names)
-    eqtxt   = ' and '.join('self.%s==other.%s' % (f,f) for f in field_names)
+    eqtxt = ' and '.join('self.%s==other.%s' % (f, f) for f in field_names)
     template = dedent('''
         class %(typename)s(object):
             '%(typename)s(%(argtxt)s)'
@@ -126,7 +128,8 @@ def recordtype(typename, field_names, verbose=False, **default_kwds):
     namespace = {}
     try:
         exec template in namespace
-        if verbose: print template
+        if verbose:
+            print template
     except SyntaxError, e:
         raise SyntaxError(e.message + ':\n' + template)
     cls = namespace[typename]
