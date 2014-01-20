@@ -17,10 +17,7 @@ rank_backward_propagate = 1
 has_char_constants = 0
 
 do_allocate = 0
-do_resolve = 1
-do_rewrite = 0
 do_rename = 0  # SSA
-do_typeof = 0
 do_listing = 0
 
 debug = False
