@@ -3,8 +3,7 @@
 
 import sys
 import re
-from ply import lex
-from lex import TOKEN
+from ply.lex import TOKEN, lex
 
 
 tokens = [
@@ -249,7 +248,7 @@ def new():
         print "Illegal character '%s'" % t.value[0]
         t.lexer.skip(1)
 
-    lexer = lex.lex(reflags=re.I)
+    lexer = lex(reflags=re.I)
     lexer.brackets = 0  # count open square brackets
     lexer.parens = 0    # count open parentheses
     lexer.braces = 0    # count open curly braces
