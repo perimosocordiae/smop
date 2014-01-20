@@ -8,6 +8,7 @@ from optparse import OptionParser
 import parse
 import resolve
 import rewrite
+import backend  # this adds the _backend function to all nodes
 
 version = '0.23'
 
