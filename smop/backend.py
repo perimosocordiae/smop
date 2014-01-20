@@ -153,6 +153,9 @@ def _backend(self, level=0):
 @extend(node.expr)
 @exceptions
 def _backend(self, level=0):
+    if self.op == '*':
+        return "np.dot(%s, %s)" % (self.args[0]._backend(),
+                                   self.args[1]._backend())
     if self.op == '@':  # FIXME
         return self.args[0]._backend()
 

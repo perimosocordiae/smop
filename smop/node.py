@@ -374,7 +374,7 @@ builtins_list = [
     "cumprod",
     "cumsum",
     "diff",
-    "dot",      # Exists in numpy. Implements matlab .*
+    "dot",      # Exists in numpy. Implements matlab *
     "exist",
     "false",
     "fclose",
