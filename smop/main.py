@@ -57,12 +57,12 @@ def main():
 
     for filename in args:
         if not filename.endswith(".m"):
-            print "\tIgnored file: '%s'" % filename
+            print >>sys.stderr, "Ignored file: '%s'" % filename
             continue
         if os.path.basename(filename) in exclude_list:
-            print "\tExcluded file: '%s'" % filename
+            print >>sys.stderr, "Excluded file: '%s'" % filename
             continue
-        print filename
+        print >>sys.stderr, "Processing file: '%s'" % filename
         buf = open(filename).read()
 
         # move each comment alone on a line
@@ -79,10 +79,10 @@ def main():
                 try:
                     func_name = func_obj.head.ident.name
                     symtab[func_name] = func_obj
-                    print "\t", func_name
-                except AttributeError:
+                    print >>sys.stderr, "\t", func_name
+                except AttributeError as e:
                     if opts.verbose:
-                        print "\tJunk ignored"
+                        print >>sys.stderr, "\tIgnored: %s" % e
                     if opts.strict:
                         return
                     continue
@@ -99,9 +99,9 @@ def main():
 
             for func_obj in func_list:
                 s = backend.backend(func_obj)
-                print >> fp, s
+                print >>fp, s
         except Exception as ex:
-            print repr(ex)
+            print >>sys.stderr, repr(ex)
             if opts.strict:
                 return
 
