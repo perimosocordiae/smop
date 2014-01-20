@@ -63,9 +63,8 @@ def translate_file(filename, with_comments=True, do_resolve=True,
     symtab = {}
 
     for func_obj in func_list:
-        func_name = func_obj.head.ident.name
-        symtab[func_name] = func_obj
-        print >>sys.stderr, "\t", func_name
+        if do_typeof:
+            symtab[func_obj.head.ident.name] = func_obj
         if do_resolve:
             resolve.resolve(func_obj)
         if do_rename:
@@ -93,7 +92,9 @@ def translate(input_files, opts):
 
     for filename in input_files:
         print >>sys.stderr, "Processing file: '%s'" % filename
-        print >>fp, translate_file(filename, opts.with_comments)
+        print >>fp, translate_file(filename, opts.with_comments,
+                                   opts.do_resolve, opts.do_rename,
+                                   opts.do_typeof, opts.do_rewrite)
 
 
 def main():
