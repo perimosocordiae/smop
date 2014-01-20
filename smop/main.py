@@ -16,9 +16,8 @@ version = '0.23'
 def main():
     op = OptionParser(description='SMOP compiler version %s' % version,
                       usage='Usage: %prog [options] file-list')
-    op.add_option(
-        '-o', '--output', type=str, default='a.py', metavar='FILENAME',
-        help='By default create file named a.py, use - for stdout')
+    op.add_option('-o', '--output', type=str, default='-', metavar='FILENAME',
+                  help='Output file name. Defaults to stdout')
     op.add_option('-X', '--exclude', type=str, default='', metavar='FILES',
                   help='Ignore files listed in comma-separated list FILES')
     op.add_option('--strict', action='store_true',
