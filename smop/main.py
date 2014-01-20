@@ -42,7 +42,7 @@ def main():
     opts, args = op.parse_args()
 
     if opts.version:
-        print "SMOP compiler version 0.23"
+        print "SMOP compiler version %s" % version
         sys.exit()
 
     exclude_list = opts.exclude.split(',')
