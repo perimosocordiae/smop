@@ -112,6 +112,7 @@ def do_resolve(t, symtab):
                 if cls is node.number:
                     u.args[i].value -= 1
                 elif cls is node.expr and u.args[i].op in ("==", "!=", "~=", "<", "=<", ">", ">="):
+                    #TODO: support A[B==C] -> A[np.where(B==C)] transforms.
                     pass
                 elif cls is node.expr and u.args[i].op == ":":
                     # Colon expression as a subscript becomes a
