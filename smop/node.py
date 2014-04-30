@@ -431,6 +431,12 @@ class cellarray(expr):
     pass
 
 
+class field_expr(expr):
+    def __init__(self, obj=None, field=None):
+      expr.__init__(self, op='.', args=expr_list([obj, field]))
+      self.defs = set([None])  # XXX: hack!
+
+
 class matrix(builtins):
 
     """

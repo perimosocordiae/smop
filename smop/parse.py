@@ -583,11 +583,8 @@ def p_field_expr(p):
     """
     expr : expr FIELD
     """
-    p[0] = node.expr(op=".",
-                     args=node.expr_list([p[1],
-                                          node.ident(name=p[2],
-                                                     lineno=p.lineno(2),
-                                                     lexpos=p.lexpos(2))]))
+    field = node.ident(name=p[2], lineno=p.lineno(2), lexpos=p.lexpos(2))
+    p[0] = node.field_expr(obj=p[1], field=field)
 
 
 def p_transpose_expr(p):

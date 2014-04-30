@@ -71,7 +71,7 @@ def do_resolve(t, symtab):
     # pprint.pprint(symtab)
     for u in node.postorder(t):
         if (u.__class__ is node.funcall and
-                u.func_expr.__class__ is node.ident):
+                u.func_expr.__class__ in (node.ident, node.field_expr)):
             if u.func_expr.defs:
                 # Both node.arrayref and node.builtins are subclasses
                 # of node.funcall, so we are allowed to assign to its
